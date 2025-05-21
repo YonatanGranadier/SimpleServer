@@ -1,31 +1,58 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.11.35312.102
-MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Node", "Node\Node.vcxproj", "{7DEC8EDC-811A-45A1-AA55-45F4E17E8CB7}"
-EndProject
-Global
-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
-		Release|x64 = Release|x64
-		Release|x86 = Release|x86
-	EndGlobalSection
-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{7DEC8EDC-811A-45A1-AA55-45F4E17E8CB7}.Debug|x64.ActiveCfg = Debug|x64
-		{7DEC8EDC-811A-45A1-AA55-45F4E17E8CB7}.Debug|x64.Build.0 = Debug|x64
-		{7DEC8EDC-811A-45A1-AA55-45F4E17E8CB7}.Debug|x86.ActiveCfg = Debug|Win32
-		{7DEC8EDC-811A-45A1-AA55-45F4E17E8CB7}.Debug|x86.Build.0 = Debug|Win32
-		{7DEC8EDC-811A-45A1-AA55-45F4E17E8CB7}.Release|x64.ActiveCfg = Release|x64
-		{7DEC8EDC-811A-45A1-AA55-45F4E17E8CB7}.Release|x64.Build.0 = Release|x64
-		{7DEC8EDC-811A-45A1-AA55-45F4E17E8CB7}.Release|x86.ActiveCfg = Release|Win32
-		{7DEC8EDC-811A-45A1-AA55-45F4E17E8CB7}.Release|x86.Build.0 = Release|Win32
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {78210D24-D976-488B-A4EE-1583F0BC0D65}
-	EndGlobalSection
-EndGlobal
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+#define SERVER_IP "127.0.0.1"
+#define PORT 12345
+#define BUFFER_SIZE 1024
+
+
+int main() {
+	int sockfd;
+	struct sockaddr_in server_addr;
+	char buffer[BUFFER_SIZE];
+
+
+	// יוצר סוקט
+	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+
+	// בודק אם הקצאת המקום בכרטיס הרשת נכשלה
+	if (sockfd < 0) {
+		perror("Socket creation failed");
+		exit(EXIT_FAILURE);
+	}
+
+	memset(&server_addr, 0, sizeof(server_addr));
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(PORT);
+	if (inet_pton(AF_INET, SERVER_IP, &(server_addr.sin_addr)) <= 0) {
+		perror("Invalid server address");
+		exit(EXIT_FAILURE);
+	}
+
+	// שולח הודעה לשרת
+	strcpy(buffer, "Hello , server!");
+	size_t num_bytes = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr*)&server_addr, sizeof(server_addr));
+	if (num_bytes < 0) {
+		perror("Send failed");
+		exit(EXIT_FAILURE);
+	}
+
+	printf("message sent to server\n");
+
+	// לקבל תשובה מהשרת
+	memset(buffer, 0, BUFFER_SIZE);
+	num_bytes = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, NULL, NULL);
+	if (num_bytes < 0) {
+		perror("Receive failed");
+		exit(EXIT_FAILURE);
+	}
+
+	printf("Received response from server: %s\n", buffer);
+
+
+	close(socket);
+	return 0;
+}
