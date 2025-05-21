@@ -1,31 +1,63 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.11.35312.102
-MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Server.C", "Server.C\Server.C.vcxproj", "{8800A893-F8CE-41BC-AA3C-FBD8AF76F13D}"
-EndProject
-Global
-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
-		Release|x64 = Release|x64
-		Release|x86 = Release|x86
-	EndGlobalSection
-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{8800A893-F8CE-41BC-AA3C-FBD8AF76F13D}.Debug|x64.ActiveCfg = Debug|x64
-		{8800A893-F8CE-41BC-AA3C-FBD8AF76F13D}.Debug|x64.Build.0 = Debug|x64
-		{8800A893-F8CE-41BC-AA3C-FBD8AF76F13D}.Debug|x86.ActiveCfg = Debug|Win32
-		{8800A893-F8CE-41BC-AA3C-FBD8AF76F13D}.Debug|x86.Build.0 = Debug|Win32
-		{8800A893-F8CE-41BC-AA3C-FBD8AF76F13D}.Release|x64.ActiveCfg = Release|x64
-		{8800A893-F8CE-41BC-AA3C-FBD8AF76F13D}.Release|x64.Build.0 = Release|x64
-		{8800A893-F8CE-41BC-AA3C-FBD8AF76F13D}.Release|x86.ActiveCfg = Release|Win32
-		{8800A893-F8CE-41BC-AA3C-FBD8AF76F13D}.Release|x86.Build.0 = Release|Win32
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {FD52B908-3325-4E2E-82B3-2B507408E9AB}
-	EndGlobalSection
-EndGlobal
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+#define PORT 12345
+#define BUFFER_SIZE 1024
+
+int main() {
+	int sockfd;
+	struct sockaddr_in server_addr, client_addr;
+	socklen_t addr_len = sizeof(client_addr);
+	char buffer[BUFFER_SIZE];
+
+
+	// יוצר סוקט
+	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+	
+	// בודק אם הקצאת המקום בכרטיס הרשת נכשלה
+	if (sockfd < 0) {
+		perror("Socket creation failed");
+		exit(EXIT_FAILURE);
+	}
+	// להגדיר כתובת לשרת
+	memset(&server_addr, 0, sizeof(server_addr));
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(PORT);
+	server_addr.sin_addr.s_addr = INADDR_ANY;
+
+
+	// לחבר סוקט לכתובת השרת
+	if (bind(sockfd, (struct sockaddr*) & server_addr, sizeof  (server_addr)) < 0) {
+		perror("Binding failed");
+		exit(EXIT_FAILURE);
+	}
+
+	printf("UDP server listening on port %d\n", PORT);
+
+
+	while (1) {
+		memset(buffer, 0, BUFFER_SIZE);
+		size_t num_bytes = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr*)&client_addr, &addr_len);
+		if (num_bytes < 0) {
+			perror("Reeceive failed");
+			exit(EXIT_FAILURE);
+		}
+
+		printf("Received message from client : %s\n", buffer);
+
+
+
+		if (sendto(sockfd, buffer, num_bytes, 0, (struct sockaddr*)&client_addr, addr_len) < 0) {
+			perror("Send failed");
+			exit(EXIT_FAILURE);
+		}
+	}
+	close(sockfd);
+	return 0;
+}
+
+
+
